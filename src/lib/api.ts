@@ -274,6 +274,8 @@ export async function subscribeToSignalAccount(
   signalAccountId: string,
   tradeAccountIds: string[],
   lotSizeMultiplier: number = 1.0,
+  reverseCopy: boolean = false,
+  onlySlTpTrades: boolean = false,
 ) {
   try {
     const { data: userData } = await supabase.auth.getUser();
@@ -291,6 +293,8 @@ export async function subscribeToSignalAccount(
         status: "trial",
         trial_ends_at: trialEndsAt.toISOString(),
         lot_size_multiplier: lotSizeMultiplier,
+        reverse_copy: reverseCopy,
+        only_sl_tp_trades: onlySlTpTrades,
       })
       .select()
       .single();

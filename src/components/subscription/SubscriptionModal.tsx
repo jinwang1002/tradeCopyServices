@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { subscribeToSignalAccount, getTradeAccounts } from "@/lib/api";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -46,6 +47,7 @@ interface SubscriptionModalProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   providerName?: string;
+  providerId?: string;
   signalAccountName?: string;
   onSubscribe?: (data: z.infer<typeof formSchema>) => void;
 }
@@ -54,6 +56,7 @@ const SubscriptionModal = ({
   open = true,
   onOpenChange,
   providerName = "TraderJoe",
+  providerId = "1",
   signalAccountName = "Aggressive Scalper",
   onSubscribe,
 }: SubscriptionModalProps) => {
@@ -69,20 +72,64 @@ const SubscriptionModal = ({
     },
   });
 
-  const handleSubmit = (data: z.infer<typeof formSchema>) => {
-    // In a real implementation, this would send the data to the backend
-    console.log("Subscription data:", data);
-    if (onSubscribe) {
-      onSubscribe(data);
+  const handleSubmit = async (data: z.infer<typeof formSchema>) => {
+    try {
+      // Convert lot size string to number
+      const lotSizeMultiplier = parseFloat(data.lotSize.replace("x", ""));
+
+      // Subscribe to signal account
+      const { success, subscription, error } = await subscribeToSignalAccount(
+        providerId,
+        [data.tradeAccount],
+        lotSizeMultiplier,
+        data.reverseCopy,
+        data.onlySLTPTrades,
+      );
+
+      if (success && subscription) {
+        console.log("Subscription created:", subscription);
+        if (onSubscribe) {
+          onSubscribe(data);
+        }
+      } else {
+        console.error("Subscription error:", error);
+        // TODO: Show error message to user
+      }
+    } catch (error) {
+      console.error("Subscription error:", error);
     }
   };
 
-  // Mock data for trade accounts
-  const tradeAccounts = [
-    { id: "1", name: "IC Markets", accountId: "12345" },
-    { id: "2", name: "Pepperstone", accountId: "67890" },
-    { id: "3", name: "FXCM", accountId: "24680" },
-  ];
+  const [tradeAccounts, setTradeAccounts] = useState<
+    Array<{
+      id: string;
+      name: string;
+      accountId: string;
+    }>
+  >([]);
+
+  useEffect(() => {
+    // Fetch trade accounts
+    const fetchTradeAccounts = async () => {
+      try {
+        const { success, tradeAccounts } = await getTradeAccounts();
+        if (success && tradeAccounts) {
+          // Map the trade accounts to the expected format
+          const formattedAccounts = tradeAccounts.map((account) => ({
+            id: account.id,
+            name: account.nickname || account.broker_name,
+            accountId: account.account_id,
+          }));
+
+          setTradeAccounts(formattedAccounts);
+        }
+      } catch (error) {
+        console.error("Error fetching trade accounts:", error);
+      }
+    };
+
+    fetchTradeAccounts();
+  }, []);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { getCurrentUser, getSignalAccounts } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import ProvidersList from "@/components/providers/ProvidersList";
@@ -34,7 +35,27 @@ const ProvidersPage = () => {
   );
   const [selectedAccount, setSelectedAccount] = useState<string>("");
   const [lotSize, setLotSize] = useState<string>("1x");
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Simulated auth state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<"provider" | "subscriber">(
+    "subscriber",
+  );
+
+  useEffect(() => {
+    // Check if user is authenticated
+    const checkAuth = async () => {
+      try {
+        const { success, user } = await getCurrentUser();
+        if (success && user) {
+          setIsAuthenticated(true);
+          setUserRole(user.role as "provider" | "subscriber");
+        }
+      } catch (error) {
+        console.error("Error checking auth:", error);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   // Mock trade accounts data
   const tradeAccounts: TradeAccount[] = [
@@ -71,7 +92,7 @@ const ProvidersPage = () => {
   };
 
   return (
-    <MainLayout isAuthenticated={isAuthenticated} userRole="subscriber">
+    <MainLayout isAuthenticated={isAuthenticated} userRole={userRole}>
       <div className="bg-black text-white min-h-screen">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Signal Providers</h1>

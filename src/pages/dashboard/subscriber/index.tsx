@@ -1,4 +1,10 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import {
+  getCurrentUser,
+  getTradeAccounts,
+  getSubscriptions,
+  getCopiedTradesByUser,
+} from "@/lib/api";
 import { Helmet } from "react-helmet";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import TradeAccountsSection from "@/components/subscriber/TradeAccountsSection";
@@ -32,64 +38,85 @@ interface SubscriberDashboardProps {
 }
 
 const SubscriberDashboard = ({
-  username = "TraderJoe",
-  avatarUrl = "https://api.dicebear.com/7.x/avataaars/svg?seed=TraderJoe",
+  username: initialUsername = "TraderJoe",
+  avatarUrl:
+    initialAvatarUrl = "https://api.dicebear.com/7.x/avataaars/svg?seed=TraderJoe",
   notificationCount = 3,
-  tradeAccounts = [
-    {
-      id: "1",
-      brokerName: "IC Markets",
-      accountId: "12345",
-      apiKey: "api_key_1",
-      dateAdded: "2023-10-15",
-    },
-    {
-      id: "2",
-      brokerName: "Pepperstone",
-      accountId: "67890",
-      apiKey: "api_key_2",
-      nickname: "Main Trading",
-      dateAdded: "2023-11-20",
-    },
-  ],
-  subscriptions = [
-    {
-      id: "sub1",
-      providerName: "TraderJoe",
-      signalAccountName: "Aggressive Scalper",
-      trialStatus: "active" as const,
-      subscriptionStatus: "active" as const,
-      trialEndDate: "2025-04-02",
-      tradeAccountName: "IC Markets",
-      lotSize: 0.5,
-      reverseMode: false,
-      onlySlTpTrades: true,
-    },
-    {
-      id: "sub2",
-      providerName: "ForexMaster",
-      signalAccountName: "Steady Growth",
-      trialStatus: "expired" as const,
-      subscriptionStatus: "active" as const,
-      tradeAccountName: "IC Markets",
-      lotSize: 1,
-      reverseMode: false,
-      onlySlTpTrades: false,
-    },
-    {
-      id: "sub3",
-      providerName: "SwingTrader",
-      signalAccountName: "Trend Follower",
-      trialStatus: "active" as const,
-      subscriptionStatus: "active" as const,
-      trialEndDate: "2025-04-10",
-      tradeAccountName: "Pepperstone",
-      lotSize: 2,
-      reverseMode: true,
-      onlySlTpTrades: true,
-    },
-  ],
+  tradeAccounts: initialTradeAccounts = [],
+  subscriptions: initialSubscriptions = [],
 }: SubscriberDashboardProps) => {
+  const [username, setUsername] = useState(initialUsername);
+  const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl);
+  const [tradeAccounts, setTradeAccounts] = useState(initialTradeAccounts);
+  const [subscriptions, setSubscriptions] = useState(initialSubscriptions);
+
+  useEffect(() => {
+    // Fetch user data, trade accounts, and subscriptions
+    const fetchUserData = async () => {
+      try {
+        // Get current user
+        const { success: userSuccess, user } = await getCurrentUser();
+        if (userSuccess && user) {
+          setUsername(user.full_name || initialUsername);
+          setAvatarUrl(user.avatar_url || initialAvatarUrl);
+
+          // Get trade accounts
+          const { success: accountsSuccess, tradeAccounts: accounts } =
+            await getTradeAccounts();
+          if (accountsSuccess && accounts) {
+            const formattedAccounts = accounts.map((account) => ({
+              id: account.id,
+              brokerName: account.broker_name,
+              accountId: account.account_id,
+              apiKey: account.api_key,
+              nickname: account.nickname || undefined,
+              dateAdded: new Date(account.created_at)
+                .toISOString()
+                .split("T")[0],
+            }));
+
+            setTradeAccounts(formattedAccounts);
+          }
+
+          // Get subscriptions
+          const { success: subsSuccess, subscriptions: subs } =
+            await getSubscriptions();
+          if (subsSuccess && subs) {
+            const formattedSubs = subs.map((sub) => {
+              const tradeAccount =
+                sub.subscription_trade_accounts?.[0]?.trade_accounts;
+              const signalAccount = sub.signal_accounts;
+
+              return {
+                id: sub.id,
+                providerName: "Provider", // This would need to be fetched separately
+                signalAccountName: signalAccount?.nickname || "Signal Account",
+                trialStatus:
+                  sub.trial_ends_at && new Date(sub.trial_ends_at) > new Date()
+                    ? "active"
+                    : "expired",
+                subscriptionStatus: sub.status as "active" | "inactive",
+                trialEndDate: sub.trial_ends_at,
+                tradeAccountName:
+                  tradeAccount?.nickname ||
+                  tradeAccount?.broker_name ||
+                  "Trade Account",
+                lotSize: sub.lot_size_multiplier,
+                reverseMode: sub.reverse_copy,
+                onlySlTpTrades: sub.only_sl_tp_trades,
+              };
+            });
+
+            setSubscriptions(formattedSubs);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserData();
+  }, [initialUsername, initialAvatarUrl]);
   // Handlers for trade accounts
   const handleAddAccount = (account: any) => {
     console.log("Adding account:", account);

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { addComment, getCommentsBySignalAccount } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -56,17 +57,34 @@ const CommentsSection = ({
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      onAddComment(newComment);
-      setNewComment("");
+    try {
+      // Add comment to Supabase
+      const { success, comment } = await addComment(null, newComment);
+      if (success && comment) {
+        // Create a new comment object with the returned data
+        const newCommentObj: Comment = {
+          id: comment.id,
+          username: comment.users?.full_name || "Anonymous",
+          avatar:
+            comment.users?.avatar_url ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.user_id}`,
+          content: comment.content,
+          timestamp: comment.created_at,
+        };
+
+        onAddComment(newComment);
+        setNewComment("");
+      }
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    } finally {
       setIsSubmitting(false);
-    }, 500);
+    }
   };
 
   const formatDate = (dateString: string) => {

@@ -1,4 +1,10 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import {
+  getCurrentUser,
+  getSignalAccounts,
+  getTradesBySignalAccount,
+  updatePerformanceStats,
+} from "@/lib/api";
 import { Helmet } from "react-helmet";
 import ObserverAccountsSection from "@/components/provider/ObserverAccountsSection";
 import PerformanceStatsSection from "@/components/provider/PerformanceStatsSection";
@@ -6,8 +12,8 @@ import TradesSection from "@/components/provider/TradesSection";
 import EarningsSection from "@/components/provider/EarningsSection";
 
 const ProviderDashboard = () => {
-  // Mock data for the provider dashboard
-  const providerData = {
+  // State for provider dashboard data
+  const [providerData, setProviderData] = useState({
     name: "TraderJoe",
     role: "provider",
     // Observer accounts data would be fetched from API in a real implementation
@@ -144,20 +150,97 @@ const ProviderDashboard = () => {
         { month: "May", subscriptions: 400, bonuses: 200, total: 600 },
       ],
     },
-  };
+  });
+
+  useEffect(() => {
+    // Fetch provider data, signal accounts, trades, and performance stats
+    const fetchProviderData = async () => {
+      try {
+        // Get current user
+        const { success: userSuccess, user } = await getCurrentUser();
+        if (userSuccess && user) {
+          setProviderData((prev) => ({
+            ...prev,
+            name: user.full_name || prev.name,
+          }));
+
+          // Get signal accounts
+          const { success: accountsSuccess, signalAccounts: accounts } =
+            await getSignalAccounts();
+          if (accountsSuccess && accounts) {
+            const formattedAccounts = accounts.map((account) => ({
+              id: account.id,
+              nickname: account.nickname,
+              description: account.description || "",
+              accountId: account.account_id,
+              brokerName: account.broker_name,
+              apiKey: account.api_key,
+              createdAt: account.created_at,
+            }));
+
+            setProviderData((prev) => ({
+              ...prev,
+              observerAccounts: formattedAccounts,
+            }));
+
+            // Update performance stats
+            await updatePerformanceStats();
+
+            // Get trades for each signal account
+            const signalAccountsWithTrades = [];
+            for (const account of formattedAccounts) {
+              const { success: tradesSuccess, trades } =
+                await getTradesBySignalAccount(account.id);
+              if (tradesSuccess && trades) {
+                const formattedTrades = trades.map((trade) => ({
+                  id: trade.id,
+                  pair: trade.symbol,
+                  type: trade.direction === "buy" ? "Buy" : "Sell",
+                  openPrice: trade.open_price,
+                  currentPrice: trade.close_price || trade.open_price,
+                  stopLoss: trade.stop_loss,
+                  takeProfit: trade.take_profit,
+                  openTime: trade.open_time,
+                  closeTime: trade.close_time,
+                  status: trade.status === "open" ? "Open" : "Closed",
+                  profit: trade.profit,
+                  pips: trade.pips,
+                }));
+
+                signalAccountsWithTrades.push({
+                  id: account.id,
+                  name: account.nickname,
+                  trades: formattedTrades,
+                });
+              }
+            }
+
+            setProviderData((prev) => ({
+              ...prev,
+              signalAccounts: signalAccountsWithTrades,
+            }));
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching provider data:", error);
+      }
+    };
+
+    fetchProviderData();
+  }, []);
 
   // Handlers for observer accounts actions
-  const handleAddAccount = (account) => {
+  const handleAddAccount = (account: any) => {
     console.log("Adding account:", account);
     // In a real implementation, this would call an API to add the account
   };
 
-  const handleEditAccount = (id, account) => {
+  const handleEditAccount = (id: string, account: any) => {
     console.log("Editing account:", id, account);
     // In a real implementation, this would call an API to update the account
   };
 
-  const handleDeleteAccount = (id) => {
+  const handleDeleteAccount = (id: string) => {
     console.log("Deleting account:", id);
     // In a real implementation, this would call an API to delete the account
   };

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { signIn, signUp, getCurrentUser } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -81,10 +82,28 @@ const AuthForm = ({ defaultTab = "login" }: AuthFormProps) => {
 
   const onLoginSubmit = async (data: LoginFormValues) => {
     try {
-      console.log("Login data:", data);
-      // TODO: Implement actual login logic with Supabase
-      // For now, just navigate to the dashboard based on a mock role
-      navigate("/dashboard/subscriber");
+      const { success, error, session } = await signIn(
+        data.email,
+        data.password,
+      );
+      if (success) {
+        const { success: userSuccess, user } = await getCurrentUser();
+        if (userSuccess && user) {
+          console.log(
+            "Login successful, navigating to:",
+            `/dashboard/${user.role}`,
+          );
+          navigate(`/dashboard/${user.role}`);
+        } else {
+          console.log(
+            "Login successful but no user data, navigating to subscriber dashboard",
+          );
+          navigate("/dashboard/subscriber");
+        }
+      } else {
+        console.error("Login error:", error);
+        // TODO: Show error message to user
+      }
     } catch (error) {
       console.error("Login error:", error);
     }
@@ -92,10 +111,36 @@ const AuthForm = ({ defaultTab = "login" }: AuthFormProps) => {
 
   const onRegisterSubmit = async (data: RegisterFormValues) => {
     try {
-      console.log("Register data:", data);
-      // TODO: Implement actual registration logic with Supabase
-      // For now, just navigate to the dashboard based on the selected role
-      navigate(`/dashboard/${data.role}`);
+      const { success, error, user } = await signUp(
+        data.email,
+        data.password,
+        data.displayName,
+        data.role,
+      );
+
+      if (success) {
+        console.log("Registration successful");
+        // Automatically sign in after registration
+        const { success: signInSuccess } = await signIn(
+          data.email,
+          data.password,
+        );
+
+        if (signInSuccess) {
+          console.log(
+            "Auto login successful after registration, navigating to:",
+            `/dashboard/${data.role}`,
+          );
+          navigate(`/dashboard/${data.role}`);
+        } else {
+          // If auto-login fails, just switch to login tab
+          setTab("login");
+          // TODO: Show success message to user
+        }
+      } else {
+        console.error("Registration error:", error);
+        // TODO: Show error message to user
+      }
     } catch (error) {
       console.error("Registration error:", error);
     }

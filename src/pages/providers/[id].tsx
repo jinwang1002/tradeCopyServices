@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useLocation } from "react-router-dom";
 import ProfileHeader from "@/components/providers/ProfileHeader";
 import SignalAccountsList from "@/components/providers/SignalAccountsList";
 import PerformanceCharts from "@/components/providers/PerformanceCharts";
@@ -8,11 +8,16 @@ import SubscriptionModal from "@/components/subscription/SubscriptionModal";
 
 const ProviderProfilePage = () => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [selectedSignalAccount, setSelectedSignalAccount] = useState<{
     id: string;
     nickname: string;
   } | null>(null);
+
+  // Get search params from URL
+  const searchParams = new URLSearchParams(location.search);
+  const searchValue = searchParams.get("search");
 
   // Mock provider data - in a real app, this would be fetched from an API
   const provider = {
@@ -69,6 +74,18 @@ const ProviderProfilePage = () => {
     },
   ];
 
+  // Filter signal accounts if search value is present
+  const filteredSignalAccounts = searchValue
+    ? signalAccounts.filter(
+        (account) =>
+          account.nickname.toLowerCase().includes(searchValue.toLowerCase()) ||
+          account.description
+            .toLowerCase()
+            .includes(searchValue.toLowerCase()) ||
+          account.broker.toLowerCase().includes(searchValue.toLowerCase()),
+      )
+    : signalAccounts;
+
   // Mock performance data
   const performanceData = {
     returns: Array.from({ length: 30 }, (_, i) => ({
@@ -100,7 +117,7 @@ const ProviderProfilePage = () => {
   };
 
   const handleSubscribe = (accountId: string) => {
-    const account = signalAccounts.find((acc) => acc.id === accountId);
+    const account = filteredSignalAccounts.find((acc) => acc.id === accountId);
     if (account) {
       setSelectedSignalAccount({
         id: account.id,
@@ -123,6 +140,16 @@ const ProviderProfilePage = () => {
         {/* Provider Profile Header */}
         <ProfileHeader provider={provider} />
 
+        {/* Display search value if present */}
+        {searchValue && (
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <p className="text-gray-300">
+              Search results for:{" "}
+              <span className="font-semibold text-white">"{searchValue}"</span>
+            </p>
+          </div>
+        )}
+
         {/* Performance Charts */}
         <PerformanceCharts
           providerId={provider.id}
@@ -132,8 +159,9 @@ const ProviderProfilePage = () => {
         {/* Signal Accounts List */}
         <SignalAccountsList
           providerId={provider.id}
-          accounts={signalAccounts}
+          accounts={filteredSignalAccounts}
           onSubscribe={handleSubscribe}
+          searchTerm={searchValue || ""}
         />
 
         {/* Provider Comments */}

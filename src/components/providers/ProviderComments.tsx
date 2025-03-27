@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { addComment, getCommentsBySignalAccount } from "@/lib/api";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -51,6 +52,33 @@ const ProviderComments: React.FC<ProviderCommentsProps> = ({
 }) => {
   const [localComments, setLocalComments] = useState<Comment[]>(comments);
 
+  useEffect(() => {
+    // Fetch comments for this provider
+    const fetchComments = async () => {
+      try {
+        const { success, comments } =
+          await getCommentsBySignalAccount(providerId);
+        if (success && comments) {
+          // Map the comments to the expected format
+          const formattedComments: Comment[] = comments.map((comment) => ({
+            id: comment.id,
+            userId: comment.user_id,
+            userName: comment.users?.full_name || "Anonymous",
+            userAvatar: comment.users?.avatar_url,
+            content: comment.content,
+            createdAt: new Date(comment.created_at),
+          }));
+
+          setLocalComments(formattedComments);
+        }
+      } catch (error) {
+        console.error("Error fetching comments:", error);
+      }
+    };
+
+    fetchComments();
+  }, [providerId]);
+
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(commentFormSchema),
     defaultValues: {
@@ -58,19 +86,29 @@ const ProviderComments: React.FC<ProviderCommentsProps> = ({
     },
   });
 
-  const onSubmit = (values: CommentFormValues) => {
-    const newComment: Comment = {
-      id: `comment-${Date.now()}`,
-      userId: "current-user",
-      userName: "Current User",
-      userAvatar: "current",
-      content: values.comment,
-      createdAt: new Date(),
-    };
+  const onSubmit = async (values: CommentFormValues) => {
+    try {
+      // Add comment to Supabase
+      const { success, comment } = await addComment(providerId, values.comment);
 
-    setLocalComments([newComment, ...localComments]);
-    onAddComment(values.comment);
-    form.reset();
+      if (success && comment) {
+        // Create a new comment object with the returned data
+        const newComment: Comment = {
+          id: comment.id,
+          userId: comment.user_id,
+          userName: comment.users?.full_name || "Anonymous",
+          userAvatar: comment.users?.avatar_url,
+          content: comment.content,
+          createdAt: new Date(comment.created_at),
+        };
+
+        setLocalComments([newComment, ...localComments]);
+        onAddComment(values.comment);
+        form.reset();
+      }
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    }
   };
 
   return (
