@@ -25,7 +25,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import RoleSelector from "./RoleSelector";
 
 // Login form schema
@@ -58,6 +59,9 @@ interface AuthFormProps {
 const AuthForm = ({ defaultTab = "login" }: AuthFormProps) => {
   const [tab, setTab] = useState<"login" | "register">(defaultTab);
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   // Login form
@@ -82,35 +86,50 @@ const AuthForm = ({ defaultTab = "login" }: AuthFormProps) => {
 
   const onLoginSubmit = async (data: LoginFormValues) => {
     try {
+      setIsSubmitting(true);
+      setLoginError(null);
+
       const { success, error, session } = await signIn(
         data.email,
         data.password,
       );
-      if (success) {
+
+      if (success && session) {
         const { success: userSuccess, user } = await getCurrentUser();
         if (userSuccess && user) {
           console.log(
             "Login successful, navigating to:",
             `/dashboard/${user.role}`,
           );
-          navigate(`/dashboard/${user.role}`);
+          // Force a page reload to update the session state in App.tsx
+          window.location.href = `/dashboard/${user.role}`;
         } else {
           console.log(
             "Login successful but no user data, navigating to subscriber dashboard",
           );
-          navigate("/dashboard/subscriber");
+          window.location.href = "/dashboard/subscriber";
         }
       } else {
         console.error("Login error:", error);
-        // TODO: Show error message to user
+        setLoginError(
+          error?.message || "Invalid email or password. Please try again.",
+        );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
+      setLoginError(
+        error?.message || "An unexpected error occurred. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const onRegisterSubmit = async (data: RegisterFormValues) => {
     try {
+      setIsSubmitting(true);
+      setRegisterError(null);
+
       const { success, error, user } = await signUp(
         data.email,
         data.password,
@@ -121,28 +140,39 @@ const AuthForm = ({ defaultTab = "login" }: AuthFormProps) => {
       if (success) {
         console.log("Registration successful");
         // Automatically sign in after registration
-        const { success: signInSuccess } = await signIn(
+        const { success: signInSuccess, session } = await signIn(
           data.email,
           data.password,
         );
 
-        if (signInSuccess) {
+        if (signInSuccess && session) {
           console.log(
             "Auto login successful after registration, navigating to:",
             `/dashboard/${data.role}`,
           );
-          navigate(`/dashboard/${data.role}`);
+          // Force a page reload to update the session state in App.tsx
+          window.location.href = `/dashboard/${data.role}`;
         } else {
           // If auto-login fails, just switch to login tab
           setTab("login");
-          // TODO: Show success message to user
+          setLoginError(
+            "Registration successful. Please log in with your new account.",
+          );
         }
       } else {
         console.error("Registration error:", error);
-        // TODO: Show error message to user
+        setRegisterError(
+          error?.message ||
+            "Registration failed. This email may already be in use.",
+        );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error:", error);
+      setRegisterError(
+        error?.message || "An unexpected error occurred. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -173,6 +203,12 @@ const AuthForm = ({ defaultTab = "login" }: AuthFormProps) => {
                 onSubmit={loginForm.handleSubmit(onLoginSubmit)}
                 className="space-y-4"
               >
+                {loginError && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{loginError}</AlertDescription>
+                  </Alert>
+                )}
                 <FormField
                   control={loginForm.control}
                   name="email"
@@ -231,8 +267,12 @@ const AuthForm = ({ defaultTab = "login" }: AuthFormProps) => {
                   )}
                 />
 
-                <Button type="submit" className="w-full">
-                  Sign In
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Signing In..." : "Sign In"}
                 </Button>
               </form>
             </Form>
@@ -244,6 +284,12 @@ const AuthForm = ({ defaultTab = "login" }: AuthFormProps) => {
                 onSubmit={registerForm.handleSubmit(onRegisterSubmit)}
                 className="space-y-4"
               >
+                {registerError && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{registerError}</AlertDescription>
+                  </Alert>
+                )}
                 <FormField
                   control={registerForm.control}
                   name="email"
@@ -343,8 +389,12 @@ const AuthForm = ({ defaultTab = "login" }: AuthFormProps) => {
                   )}
                 />
 
-                <Button type="submit" className="w-full">
-                  Create Account
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Creating Account..." : "Create Account"}
                 </Button>
               </form>
             </Form>

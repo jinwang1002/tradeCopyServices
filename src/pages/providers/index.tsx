@@ -85,6 +85,11 @@ const ProvidersPage = () => {
     console.log("Trade account:", selectedAccount);
     console.log("Lot size:", lotSize);
 
+    // Navigate to subscriber dashboard after subscription
+    if (isAuthenticated) {
+      navigate("/dashboard/subscriber");
+    }
+
     // Reset state
     setSelectedProviderId(null);
     setSelectedAccount("");

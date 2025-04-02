@@ -12,8 +12,37 @@ import TradesSection from "@/components/provider/TradesSection";
 import EarningsSection from "@/components/provider/EarningsSection";
 
 const ProviderDashboard = () => {
+  // Define interfaces for type safety
+  interface Trade {
+    id: string;
+    pair: string;
+    type: "Buy" | "Sell";
+    openPrice: number;
+    currentPrice?: number;
+    stopLoss?: number;
+    takeProfit?: number;
+    openTime: string;
+    closeTime?: string;
+    profit?: number;
+    pips?: number;
+    status: "Open" | "Closed";
+  }
+
+  interface SignalAccount {
+    id: string;
+    name: string;
+    trades: Trade[];
+  }
+
   // State for provider dashboard data
-  const [providerData, setProviderData] = useState({
+  const [providerData, setProviderData] = useState<{
+    name: string;
+    role: string;
+    observerAccounts: any[];
+    performanceStats: any;
+    signalAccounts: SignalAccount[];
+    earnings: any;
+  }>({
     name: "TraderJoe",
     role: "provider",
     // Observer accounts data would be fetched from API in a real implementation
@@ -69,37 +98,37 @@ const ProviderDashboard = () => {
           {
             id: "t1",
             pair: "EUR/USD",
-            type: "Buy",
+            type: "Buy" as const,
             openPrice: 1.1,
             currentPrice: 1.105,
             stopLoss: 1.095,
             takeProfit: 1.11,
             openTime: "2023-04-01T10:30:00Z",
-            status: "Open",
+            status: "Open" as const,
             pips: 50,
           },
           {
             id: "t2",
             pair: "GBP/USD",
-            type: "Sell",
+            type: "Sell" as const,
             openPrice: 1.3,
             currentPrice: 1.295,
             stopLoss: 1.305,
             takeProfit: 1.29,
             openTime: "2023-04-02T14:15:00Z",
-            status: "Open",
+            status: "Open" as const,
             pips: 50,
           },
           {
             id: "t3",
             pair: "USD/JPY",
-            type: "Buy",
+            type: "Buy" as const,
             openPrice: 110.5,
             openTime: "2023-03-28T09:45:00Z",
             closeTime: "2023-03-29T16:30:00Z",
             profit: 120,
             pips: 30,
-            status: "Closed",
+            status: "Closed" as const,
           },
         ],
       },
@@ -110,25 +139,25 @@ const ProviderDashboard = () => {
           {
             id: "t5",
             pair: "EUR/JPY",
-            type: "Buy",
+            type: "Buy" as const,
             openPrice: 130.75,
             currentPrice: 131.25,
             stopLoss: 130.25,
             takeProfit: 132.0,
             openTime: "2023-04-03T08:20:00Z",
-            status: "Open",
+            status: "Open" as const,
             pips: 50,
           },
           {
             id: "t6",
             pair: "USD/CAD",
-            type: "Sell",
+            type: "Sell" as const,
             openPrice: 1.25,
             openTime: "2023-03-30T13:40:00Z",
             closeTime: "2023-04-01T10:15:00Z",
             profit: 200,
             pips: 40,
-            status: "Closed",
+            status: "Closed" as const,
           },
         ],
       },
@@ -195,14 +224,20 @@ const ProviderDashboard = () => {
                 const formattedTrades = trades.map((trade) => ({
                   id: trade.id,
                   pair: trade.symbol,
-                  type: trade.direction === "buy" ? "Buy" : "Sell",
+                  type:
+                    trade.direction === "buy"
+                      ? "Buy"
+                      : ("Sell" as "Buy" | "Sell"),
                   openPrice: trade.open_price,
                   currentPrice: trade.close_price || trade.open_price,
                   stopLoss: trade.stop_loss,
                   takeProfit: trade.take_profit,
                   openTime: trade.open_time,
                   closeTime: trade.close_time,
-                  status: trade.status === "open" ? "Open" : "Closed",
+                  status:
+                    trade.status === "open"
+                      ? "Open"
+                      : ("Closed" as "Open" | "Closed"),
                   profit: trade.profit,
                   pips: trade.pips,
                 }));
@@ -233,16 +268,28 @@ const ProviderDashboard = () => {
   const handleAddAccount = (account: any) => {
     console.log("Adding account:", account);
     // In a real implementation, this would call an API to add the account
+    // Refresh the page to show the new account
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   const handleEditAccount = (id: string, account: any) => {
     console.log("Editing account:", id, account);
     // In a real implementation, this would call an API to update the account
+    // Refresh the page to show the updated account
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   const handleDeleteAccount = (id: string) => {
     console.log("Deleting account:", id);
     // In a real implementation, this would call an API to delete the account
+    // Refresh the page to show the account has been deleted
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   return (

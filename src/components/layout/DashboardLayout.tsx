@@ -11,6 +11,7 @@ interface DashboardLayoutProps {
   username?: string;
   avatarUrl?: string;
   notificationCount?: number;
+  children?: React.ReactNode;
 }
 
 const DashboardLayout = ({

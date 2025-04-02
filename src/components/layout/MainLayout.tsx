@@ -6,6 +6,7 @@ import Footer from "@/components/layout/Footer";
 interface MainLayoutProps {
   isAuthenticated?: boolean;
   userRole?: "provider" | "subscriber";
+  children?: React.ReactNode;
 }
 
 const MainLayout = ({

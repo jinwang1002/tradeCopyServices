@@ -131,7 +131,8 @@ const ProviderProfilePage = () => {
     // In a real app, this would send the subscription data to an API
     console.log("Subscription completed:", data);
     setIsSubscriptionModalOpen(false);
-    // You might want to show a success message or update the UI
+    // Redirect to subscriber dashboard after subscription
+    window.location.href = "/dashboard/subscriber";
   };
 
   return (

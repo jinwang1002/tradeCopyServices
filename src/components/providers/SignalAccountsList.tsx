@@ -52,6 +52,7 @@ interface SignalAccountsListProps {
   providerId?: string;
   accounts?: SignalAccount[];
   onSubscribe?: (accountId: string) => void;
+  searchTerm?: string;
 }
 
 const SignalAccountsList = ({

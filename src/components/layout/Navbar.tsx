@@ -116,7 +116,13 @@ const Navbar = ({
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <button className="w-full text-left text-red-500">
+                    <button
+                      className="w-full text-left text-red-500"
+                      onClick={() => {
+                        // Handle logout
+                        window.location.href = "/auth";
+                      }}
+                    >
                       Logout
                     </button>
                   </DropdownMenuItem>
@@ -189,7 +195,11 @@ const Navbar = ({
                 </Link>
                 <button
                   className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-500 hover:bg-gray-700 hover:text-red-400"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    // Handle logout
+                    window.location.href = "/auth";
+                  }}
                 >
                   Logout
                 </button>

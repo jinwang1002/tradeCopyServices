@@ -91,19 +91,21 @@ const SubscriberDashboard = ({
                 id: sub.id,
                 providerName: "Provider", // This would need to be fetched separately
                 signalAccountName: signalAccount?.nickname || "Signal Account",
-                trialStatus:
-                  sub.trial_ends_at && new Date(sub.trial_ends_at) > new Date()
-                    ? "active"
-                    : "expired",
+                trialStatus: (sub.trial_ends_at &&
+                new Date(sub.trial_ends_at) > new Date()
+                  ? "active"
+                  : sub.trial_ends_at
+                    ? "expired"
+                    : "none") as "active" | "expired" | "none",
                 subscriptionStatus: sub.status as "active" | "inactive",
                 trialEndDate: sub.trial_ends_at,
                 tradeAccountName:
                   tradeAccount?.nickname ||
                   tradeAccount?.broker_name ||
                   "Trade Account",
-                lotSize: sub.lot_size_multiplier,
-                reverseMode: sub.reverse_copy,
-                onlySlTpTrades: sub.only_sl_tp_trades,
+                lotSize: Number(sub.lot_size_multiplier) || 1,
+                reverseMode: Boolean(sub.reverse_copy),
+                onlySlTpTrades: Boolean(sub.only_sl_tp_trades),
               };
             });
 
@@ -121,16 +123,28 @@ const SubscriberDashboard = ({
   const handleAddAccount = (account: any) => {
     console.log("Adding account:", account);
     // In a real implementation, this would call an API to add the account
+    // Refresh the page to show the new account
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   const handleEditAccount = (id: string, account: any) => {
     console.log("Editing account:", id, account);
     // In a real implementation, this would call an API to update the account
+    // Refresh the page to show the updated account
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   const handleDeleteAccount = (id: string) => {
     console.log("Deleting account:", id);
     // In a real implementation, this would call an API to delete the account
+    // Refresh the page to show the account has been deleted
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   return (
